@@ -1,0 +1,13 @@
+torch
+torchvision
+numpy
+tqdm
+matplotlib
+pandas
+
+speechbrain
+datasets
+torch_audiomentations
+wandb
+torchaudio
+pillow
