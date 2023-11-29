@@ -230,8 +230,7 @@ class Trainer(BaseTrainer):
             parameters_g = [parameters_g]
         if isinstance(parameters_d, torch.Tensor):
             parameters_d = [parameters_d]
-        parameters = parameters_g + parameters_d
-        parameters = [p for p in parameters if p.grad is not None]
+        parameters = [p for p in parameters_g if p.grad is not None] + [p for p in parameters_d if p.grad is not None] 
         total_norm = torch.norm(
             torch.stack(
                 [torch.norm(p.grad.detach(), norm_type).cpu() for p in parameters]
