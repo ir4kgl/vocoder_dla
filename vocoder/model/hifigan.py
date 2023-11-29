@@ -28,6 +28,11 @@ class ResBlock(nn.Module):
                         dilation=1, padding=get_padding(kernel_size, 1))),
                 LeakyReLU()
             ]))
+        for seq in self.layers:
+            for l in seq:
+                if "Conv1d" in l.__class__.__name__:
+                    nn.init.normal_(l.weight)
+                    nn.init.constant_(l.bias, 0.0)
 
     def forward(self, x):
         for layer in self.layers():
@@ -57,6 +62,9 @@ class Upsampler(nn.Module):
             c, c // 2, kernel_size, stride=upsample_rate,
             padding=(kernel_size - upsample_rate) // 2
         ))
+        nn.init.normal_(self.t_conv.weight)
+        nn.init.constant_(self.t_conv.bias, 0.0)
+        # m.dweight.data.normal_(mean, std)
 
     def forward(self, x):
         return self.t_conv(x)
@@ -92,7 +100,11 @@ class Generator(nn.Module):
             c //= 2
         self.activation = nn.LeakyReLU()
         self.postconv = weight_norm(nn.Conv1d(c, 1, 7, 1, padding=3))
-    
+        nn.init.normal_(self.preconv.weight)
+        nn.init.constant_(self.preconv.bias, 0.0)
+        nn.init.normal_(self.postconv.weight)
+        nn.init.constant_(self.postconv.bias, 0.0)
+
     def forward(self, x):
         x = self.preconv(x)
         x = self.blocks(x)
