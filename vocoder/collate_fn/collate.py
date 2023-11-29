@@ -34,6 +34,6 @@ def collate_fn(dataset_items: List[dict]):
 
     result_batch["mel"] = torch.cat(
         tuple(ConstantPad2d((0, batch_mel_len - x["mel"].shape[-1], 0, 0), 0)(x["mel"]) for x in dataset_items)
-    ).unsqueeze(1)
+    )
 
     return result_batch
