@@ -5,6 +5,8 @@ from tqdm import tqdm
 from vocoder.base import BaseTrainer
 from vocoder.utils import MetricTracker
 from vocoder.mel.mel import MelSpectrogram, MelSpectrogramConfig
+from torch.nn.functional import pad
+
 
 EVAL_DATA = ["./eval_data/mels/mel1.pt",
              "./eval_data/mels/mel2.pt",
@@ -136,6 +138,9 @@ class Trainer(BaseTrainer):
         batch = self.move_batch_to_device(batch, self.device)
 
         batch["audio_pred"] = self.generator(batch["mel"])
+        if batch["audio_pred"].shape[-1] > batch["audio"].shape[-1]:
+            pad_ = (0, batch["audio_pred"].shape[-1] - batch["audio"].shape[-1])
+            batch["audio"] = pad(batch["audio"], pad_, "constant", 0)
         batch["mel_pred"] = self.mel_spec(batch["audio_pred"])
 
         if is_train:
