@@ -61,7 +61,7 @@ class Trainer(BaseTrainer):
         """
         Move all necessary tensors to the HPU
         """
-        for tensor_for_gpu in ["mel", "audio"]:
+        for tensor_for_gpu in ["audio"]:
             batch[tensor_for_gpu] = batch[tensor_for_gpu].to(device)
         return batch
 
@@ -137,6 +137,7 @@ class Trainer(BaseTrainer):
 
         batch["audio_pred"] = self.generator(batch["mel"])
         batch["mel_pred"] = self.mel_spec(batch["audio_pred"])
+        batch["mel"] = self.mel_spec(batch["audio"])
 
         if is_train:
             self.optimizer_d.zero_grad()
