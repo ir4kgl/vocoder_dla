@@ -1,19 +1,14 @@
-import random
-from pathlib import Path
-from random import shuffle
-
-import PIL
-import pandas as pd
 import torch
-import torch.nn.functional as F
 from torch.nn.utils import clip_grad_norm_
-from torchvision.transforms import ToTensor
 from tqdm import tqdm
 
 from vocoder.base import BaseTrainer
 from vocoder.utils import MetricTracker
 from vocoder.mel.mel import MelSpectrogram, MelSpectrogramConfig
 
+EVAL_DATA = ["./eval_data/mels/mel1.pt",
+             "./eval_data/mels/mel2.pt",
+             "./eval_data/mels/mel3.pt"]
 
 class Trainer(BaseTrainer):
     """
@@ -132,9 +127,8 @@ class Trainer(BaseTrainer):
                 break
         log = last_train_metrics
 
-        for part, dataloader in self.evaluation_dataloaders.items():
-            val_log = self._evaluation_epoch(epoch, part, dataloader)
-            log.update(**{f"{part}_{name}": value for name, value in val_log.items()})
+        with torch.no_grad():
+            self._evaluation_epoch()
 
         return log
 
@@ -187,11 +181,9 @@ class Trainer(BaseTrainer):
         metrics.update("Adv_loss", batch["Adv_loss"].item())
         metrics.update("generator_loss", batch["generator_loss"].item())
 
-        # for met in self.metrics:
-        #     metrics.update(met.name, met(**batch))
         return batch
 
-    def _evaluation_epoch(self, epoch, part, dataloader):
+    def _evaluation_epoch(self):
         """
         Validate after training an epoch
 
@@ -200,20 +192,12 @@ class Trainer(BaseTrainer):
         """
         self.generator.eval()
         self.discriminator.eval()
-
-        # with torch.no_grad():
-        #     for batch_idx, batch in tqdm(
-        #             enumerate(dataloader),
-        #             desc=part,
-        #             total=len(dataloader),
-        #     ):
-        #         batch = self.process_batch(
-        #             batch,
-        #             is_train=False,
-        #             metrics=self.evaluation_metrics,
-        #         )
-        #     self.writer.set_step(epoch * self.len_epoch, part)
-
+    
+        for i, mel_path in enumerate(EVAL_DATA):
+                mel = torch.load(mel_path)
+                assert(mel.shape[1]) == 80
+                audio = self.generator(mel).squeeze()
+                self.writer.add_audio("synthesised_audio_{}".format(i), audio, sample_rate=22050)
 
     def _progress(self, batch_idx):
         base = "[{}/{} ({:.0f}%)]"
