@@ -218,4 +218,6 @@ class Discriminator(nn.Module):
         self.msd = MSD()
 
     def forward(self, x):
-        return *self.mpd(x), *self.msd(x)
+        out_mpd, fm_mpd = self.mpd(x)
+        out_msd, fm_msd = self.msd(x)
+        return out_mpd, fm_mpd, out_msd, fm_msd
