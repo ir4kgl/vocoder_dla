@@ -121,9 +121,9 @@ class PeriodDiscriminator(nn.Module):
         in_c = 1
         for c in [32, 128, 512, 1024]:
             self.layers.append(
-                weight_norm(in_c, c, (kernel_size, 1), (stride, 1), f_pad))
+                weight_norm(nn.Conv2d(in_c, c, (kernel_size, 1), (stride, 1), f_pad)))
             in_c = c
-        self.layers.append(weight_norm(in_c, in_c, (kernel_size, 1), padding=(2,0)))
+        self.layers.append(weight_norm(nn.Conv2d(in_c, in_c, (kernel_size, 1), padding=(2,0))))
         self.activation = LeakyReLU()
         self.postconv = weight_norm(nn.Conv2d(1024, 1, (3, 1), 1, (1, 0)))
 
