@@ -10,10 +10,6 @@
     },
     "log_spec": true
   },
-  "augmentations": {
-    "wave": [],
-    "spectrogram": []
-  },
   "arch": {
     "type": "BaselineModel",
     "args": {
@@ -31,7 +27,6 @@
           "args": {
             "part": "dev-clean",
             "max_audio_length": 20.0,
-            "max_text_length": 200,
             "limit": 10
           }
         }
@@ -46,7 +41,6 @@
           "args": {
             "part": "dev-clean",
             "max_audio_length": 20.0,
-            "max_text_length": 200,
             "limit": 10
           }
         }

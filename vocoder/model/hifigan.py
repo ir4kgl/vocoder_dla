@@ -205,3 +205,13 @@ class MSD(nn.Module):
             preds.append(pred)
             feature_maps.append(fm)
         return preds, feature_maps
+
+
+    class Discriminator(nn.Module):
+        def __init__(self):
+            super(Discriminator, self).__init__()
+            self.mpd = MPD()
+            self.msd = MSD()
+
+        def forward(self, x):
+            return *MPD(x), *MSD(x)

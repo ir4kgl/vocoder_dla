@@ -9,6 +9,8 @@ from torch import Tensor
 from torch.utils.data import Dataset
 
 from vocoder.utils.parse_config import ConfigParser
+from vocoder.mel.mel import MelSpectrogramConfig, MelSpectrogram
+
 
 logger = logging.getLogger(__name__)
 
@@ -22,15 +24,18 @@ class BaseDataset(Dataset):
             spec_augs=None,
             limit=None,
             max_audio_length=None,
-            max_text_length=None,
+            mel_config=None
     ):
         self.config_parser = config_parser
         self.wave_augs = wave_augs
         self.spec_augs = spec_augs
         self.log_spec = config_parser["preprocessing"]["log_spec"]
+        if mel_config == None:
+            mel_config = MelSpectrogramConfig()
+        self.mel_spec = MelSpectrogram(mel_config)
 
         self._assert_index_is_valid(index)
-        index = self._filter_records_from_dataset(index, max_audio_length, max_text_length, limit)
+        index = self._filter_records_from_dataset(index, max_audio_length, limit)
         # it's a good idea to sort index by audio length
         # It would be easier to write length-based batch samplers later
         index = self._sort_index(index)
@@ -40,14 +45,13 @@ class BaseDataset(Dataset):
         data_dict = self._index[ind]
         audio_path = data_dict["path"]
         audio_wave = self.load_audio(audio_path)
-        audio_wave, audio_spec = self.process_wave(audio_wave)
+        audio_wave = self.process_wave(audio_wave)
+        mel = self.mel_spec(audio_wave)
         return {
             "audio": audio_wave,
-            "spectrogram": audio_spec,
             "duration": audio_wave.size(1) / self.config_parser["preprocessing"]["sr"],
-            "text": data_dict["text"],
-            "text_encoded": self.text_encoder.encode(data_dict["text"]),
             "audio_path": audio_path,
+            "mel" : mel
         }
 
     @staticmethod
@@ -69,16 +73,7 @@ class BaseDataset(Dataset):
         with torch.no_grad():
             if self.wave_augs is not None:
                 audio_tensor_wave = self.wave_augs(audio_tensor_wave)
-            wave2spec = self.config_parser.init_obj(
-                self.config_parser["preprocessing"]["spectrogram"],
-                torchaudio.transforms,
-            )
-            audio_tensor_spec = wave2spec(audio_tensor_wave)
-            if self.spec_augs is not None:
-                audio_tensor_spec = self.spec_augs(audio_tensor_spec)
-            if self.log_spec:
-                audio_tensor_spec = torch.log(audio_tensor_spec + 1e-5)
-            return audio_tensor_wave, audio_tensor_spec
+            return audio_tensor_wave
 
     @staticmethod
     def _filter_records_from_dataset(

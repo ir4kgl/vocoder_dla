@@ -11,6 +11,7 @@ from vocoder.utils import ROOT_PATH
 from speechbrain.utils.data_utils import download_file
 from tqdm import tqdm
 
+
 logger = logging.getLogger(__name__)
 
 URL_LINKS = {
@@ -19,12 +20,14 @@ URL_LINKS = {
 
 
 class LJspeechDataset(BaseDataset):
-    def __init__(self, part, data_dir=None, *args, **kwargs):
+    def __init__(self, data_dir=None, *args, **kwargs):
+
         if data_dir is None:
             data_dir = ROOT_PATH / "data" / "datasets" / "ljspeech"
             data_dir.mkdir(exist_ok=True, parents=True)
         self._data_dir = data_dir
-        index = self._get_or_load_index(part)
+
+        index = self._get_or_load_index()
 
         super().__init__(index, *args, **kwargs)
 
@@ -38,32 +41,20 @@ class LJspeechDataset(BaseDataset):
         os.remove(str(arch_path))
         shutil.rmtree(str(self._data_dir / "LJSpeech-1.1"))
 
-        files = [file_name for file_name in (self._data_dir / "wavs").iterdir()]
-        train_length = int(0.85 * len(files)) # hand split, test ~ 15% 
-        (self._data_dir / "train").mkdir(exist_ok=True, parents=True)
-        (self._data_dir / "test").mkdir(exist_ok=True, parents=True)
-        for i, fpath in enumerate((self._data_dir / "wavs").iterdir()):
-            if i < train_length:
-                shutil.move(str(fpath), str(self._data_dir / "train" / fpath.name))
-            else:
-                shutil.move(str(fpath), str(self._data_dir / "test" / fpath.name))
-        shutil.rmtree(str(self._data_dir / "wavs"))
-
-
-    def _get_or_load_index(self, part):
-        index_path = self._data_dir / f"{part}_index.json"
+    def _get_or_load_index(self):
+        index_path = self._index_dir / f"index.json"
         if index_path.exists():
             with index_path.open() as f:
                 index = json.load(f)
         else:
-            index = self._create_index(part)
+            index = self._create_index()
             with index_path.open("w") as f:
                 json.dump(index, f, indent=2)
         return index
 
-    def _create_index(self, part):
+    def _create_index(self):
         index = []
-        split_dir = self._data_dir / part
+        split_dir = self._data_dir
         if not split_dir.exists():
             self._load_dataset()
 
@@ -72,7 +63,7 @@ class LJspeechDataset(BaseDataset):
             if any([f.endswith(".wav") for f in filenames]):
                 wav_dirs.add(dirpath)
         for wav_dir in tqdm(
-                list(wav_dirs), desc=f"Preparing ljspeech folders: {part}"
+                list(wav_dirs), desc=f"Preparing ljspeech folders"
         ):
             wav_dir = Path(wav_dir)
             trans_path = list(self._data_dir.glob("*.csv"))[0]
@@ -89,7 +80,6 @@ class LJspeechDataset(BaseDataset):
                         index.append(
                             {
                                 "path": str(wav_path.absolute().resolve()),
-                                "text": w_text.lower(),
                                 "audio_len": length,
                             }
                         )

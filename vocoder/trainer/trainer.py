@@ -11,8 +11,8 @@ from torchvision.transforms import ToTensor
 from tqdm import tqdm
 
 from vocoder.base import BaseTrainer
-from vocoder.logger.utils import plot_spectrogram_to_buf
 from vocoder.utils import MetricTracker
+from vocoder.mel.mel import MelSpectrogram, MelSpectrogramConfig
 
 
 class Trainer(BaseTrainer):
@@ -22,48 +22,61 @@ class Trainer(BaseTrainer):
 
     def __init__(
             self,
-            model,
-            criterion,
-            metrics,
-            optimizer,
+            generator,
+            discriminator,
+            adv_criterion_g,
+            adv_criterion_d,
+            mel_criterion,
+            fm_criterion,
+            optimizer_g,
+            optimizer_d,
             config,
             device,
             dataloaders,
-            text_encoder,
-            lr_scheduler=None,
+            lr_scheduler_g=None,
+            lr_scheduler_d=None,
             skip_oom=True,
+            mel_config=None
     ):
-        super().__init__(model, criterion, metrics, optimizer, config, device)
+        super().__init__(generator, discriminator,
+                         adv_criterion_g, adv_criterion_d, mel_criterion, fm_criterion,
+                         optimizer_g, optimizer_d, config, device)
         self.skip_oom = skip_oom
-        self.text_encoder = text_encoder
         self.config = config
         self.train_dataloader = dataloaders["train"]
 
         self.len_epoch = len(self.train_dataloader)
         self.evaluation_dataloaders = {k: v for k, v in dataloaders.items() if k != "train"}
-        self.lr_scheduler = lr_scheduler
+        self.lr_scheduler_g = lr_scheduler_g
+        self.lr_scheduler_d = lr_scheduler_d
         self.log_step = 50
 
         self.train_metrics = MetricTracker(
-            "loss", "grad norm", *[m.name for m in self.metrics], writer=self.writer
+            "mpd_loss", "msd_loss", "discriminator_loss",
+            "Mel_loss", "FM_loss", "Adv_loss", "generator_loss",
+            "grad norm", writer=self.writer
         )
-        self.evaluation_metrics = MetricTracker(
-            "loss", *[m.name for m in self.metrics], writer=self.writer
-        )
+
+        if mel_config == None:
+            mel_config = MelSpectrogramConfig()
+        self.mel_spec = MelSpectrogram(mel_config)
 
     @staticmethod
     def move_batch_to_device(batch, device: torch.device):
         """
         Move all necessary tensors to the HPU
         """
-        for tensor_for_gpu in ["spectrogram", "text_encoded"]:
+        for tensor_for_gpu in ["mel", "audio"]:
             batch[tensor_for_gpu] = batch[tensor_for_gpu].to(device)
         return batch
 
     def _clip_grad_norm(self):
         if self.config["trainer"].get("grad_norm_clip", None) is not None:
             clip_grad_norm_(
-                self.model.parameters(), self.config["trainer"]["grad_norm_clip"]
+                self.generator.parameters(), self.config["trainer"]["grad_norm_clip"]
+            )
+            clip_grad_norm_(
+                self.discriminator.parameters(), self.config["trainer"]["grad_norm_clip"]
             )
 
     def _train_epoch(self, epoch):
@@ -73,7 +86,8 @@ class Trainer(BaseTrainer):
         :param epoch: Integer, current training epoch.
         :return: A log that contains average loss and metric in this epoch.
         """
-        self.model.train()
+        self.generator.train()
+        self.discriminator.train()
         self.train_metrics.reset()
         self.writer.add_scalar("epoch", epoch)
         for batch_idx, batch in enumerate(
@@ -88,9 +102,13 @@ class Trainer(BaseTrainer):
             except RuntimeError as e:
                 if "out of memory" in str(e) and self.skip_oom:
                     self.logger.warning("OOM on batch. Skipping batch.")
-                    for p in self.model.parameters():
+                    for p in self.generator.parameters():
                         if p.grad is not None:
                             del p.grad  # free some memory
+                    for p in self.discriminator.parameters():
+                        if p.grad is not None:
+                            del p.grad  # free some memory
+
                     torch.cuda.empty_cache()
                     continue
                 else:
@@ -100,17 +118,14 @@ class Trainer(BaseTrainer):
                 self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
                 self.logger.debug(
                     "Train Epoch: {} {} Loss: {:.6f}".format(
-                        epoch, self._progress(batch_idx), batch["loss"].item()
+                        epoch, self._progress(batch_idx), batch["generator_loss"].item()
                     )
                 )
                 self.writer.add_scalar(
                     "learning rate", self.lr_scheduler.get_last_lr()[0]
                 )
-                self._log_predictions(**batch)
-                self._log_spectrogram(batch["spectrogram"])
+
                 self._log_scalars(self.train_metrics)
-                # we don't want to reset train metrics at the start of every epoch
-                # because we are interested in recent train metrics
                 last_train_metrics = self.train_metrics.result()
                 self.train_metrics.reset()
             if batch_idx >= self.len_epoch:
@@ -125,29 +140,55 @@ class Trainer(BaseTrainer):
 
     def process_batch(self, batch, is_train: bool, metrics: MetricTracker):
         batch = self.move_batch_to_device(batch, self.device)
-        if is_train:
-            self.optimizer.zero_grad()
-        outputs = self.model(**batch)
-        if type(outputs) is dict:
-            batch.update(outputs)
-        else:
-            batch["logits"] = outputs
 
-        batch["log_probs"] = F.log_softmax(batch["logits"], dim=-1)
-        batch["log_probs_length"] = self.model.transform_input_lengths(
-            batch["spectrogram_length"]
-        )
-        batch["loss"] = self.criterion(**batch)
+        batch["audio_pred"] = self.generator(batch["mel"])
+        batch["mel_pred"] = self.mel_spec(batch["audio_pred"])
+
         if is_train:
-            batch["loss"].backward()
+            self.optimizer_d.zero_grad()
+
+        mpd_out, _, msd_out, _ = self.discriminator(batch["audio"])
+        mpd_out_pred, _, msd_out_pred, _ = self.discriminator(batch["audio_pred"])
+
+        batch["mpd_loss"] = self.adv_criterion_d(mpd_out, mpd_out_pred)
+        batch["msd_loss"] = self.adv_criterion_d(msd_out, msd_out_pred)
+        batch["discriminator_loss"] = batch["mpd_loss"] + batch["msd_loss"]
+        if is_train:
+            batch["discriminator_loss"].backward()
             self._clip_grad_norm()
-            self.optimizer.step()
-            if self.lr_scheduler is not None:
-                self.lr_scheduler.step()
+            self.optimizer_d.step()
+            if self.lr_scheduler_d is not None:
+                self.lr_scheduler_d.step()
 
-        metrics.update("loss", batch["loss"].item())
-        for met in self.metrics:
-            metrics.update(met.name, met(**batch))
+        metrics.update("mpd_loss", batch["mpd_loss"].item())
+        metrics.update("msd_loss", batch["msd_loss"].item())
+        metrics.update("discriminator_loss", batch["discriminator_loss"].item())
+
+        if is_train:
+            self.optimizer_g.zero_grad()
+
+        mpd_out, mpd_fm, msd_out, msd_fm = self.discriminator(batch["audio"])
+        mpd_out_pred, mpd_fm_pred, msd_out_pred, msd_fm_pred = self.discriminator(batch["audio_pred"])
+
+        batch["Mel_loss"] = self.mel_criterion(batch["mel"], batch["mel_pred"])
+        batch["FM_loss"] = self.fm_criterion(mpd_fm, mpd_fm_pred) + self.fm_criterion(msd_fm, msd_fm_pred)
+        batch["Adv_loss"] = self.adv_criterion_g(mpd_out_pred) + self.adv_criterion_g(msd_out_pred)
+        batch["generator_loss"] = batch["FM_loss"] + batch["Mel_loss"] + batch["Adv_loss"]
+
+        if is_train:
+            batch["generator_loss"].backward()
+            self._clip_grad_norm()
+            self.optimizer_g.step()
+            if self.lr_scheduler_g is not None:
+                self.lr_scheduler_g.step()
+
+        metrics.update("Mel_loss", batch["Mel_loss"].item())
+        metrics.update("FM_loss", batch["FM_loss"].item())
+        metrics.update("Adv_loss", batch["Adv_loss"].item())
+        metrics.update("generator_loss", batch["generator_loss"].item())
+
+        # for met in self.metrics:
+        #     metrics.update(met.name, met(**batch))
         return batch
 
     def _evaluation_epoch(self, epoch, part, dataloader):
@@ -157,28 +198,22 @@ class Trainer(BaseTrainer):
         :param epoch: Integer, current training epoch.
         :return: A log that contains information about validation
         """
-        self.model.eval()
-        self.evaluation_metrics.reset()
-        with torch.no_grad():
-            for batch_idx, batch in tqdm(
-                    enumerate(dataloader),
-                    desc=part,
-                    total=len(dataloader),
-            ):
-                batch = self.process_batch(
-                    batch,
-                    is_train=False,
-                    metrics=self.evaluation_metrics,
-                )
-            self.writer.set_step(epoch * self.len_epoch, part)
-            self._log_scalars(self.evaluation_metrics)
-            self._log_predictions(**batch)
-            self._log_spectrogram(batch["spectrogram"])
+        self.generator.eval()
+        self.discriminator.eval()
 
-        # add histogram of model parameters to the tensorboard
-        for name, p in self.model.named_parameters():
-            self.writer.add_histogram(name, p, bins="auto")
-        return self.evaluation_metrics.result()
+        # with torch.no_grad():
+        #     for batch_idx, batch in tqdm(
+        #             enumerate(dataloader),
+        #             desc=part,
+        #             total=len(dataloader),
+        #     ):
+        #         batch = self.process_batch(
+        #             batch,
+        #             is_train=False,
+        #             metrics=self.evaluation_metrics,
+        #         )
+        #     self.writer.set_step(epoch * self.len_epoch, part)
+
 
     def _progress(self, batch_idx):
         base = "[{}/{} ({:.0f}%)]"
@@ -190,53 +225,16 @@ class Trainer(BaseTrainer):
             total = self.len_epoch
         return base.format(current, total, 100.0 * current / total)
 
-    def _log_predictions(
-            self,
-            text,
-            log_probs,
-            log_probs_length,
-            audio_path,
-            examples_to_log=10,
-            *args,
-            **kwargs,
-    ):
-        # TODO: implement logging of beam search results
-        if self.writer is None:
-            return
-        argmax_inds = log_probs.cpu().argmax(-1).numpy()
-        argmax_inds = [
-            inds[: int(ind_len)]
-            for inds, ind_len in zip(argmax_inds, log_probs_length.numpy())
-        ]
-        argmax_texts_raw = [self.text_encoder.decode(inds) for inds in argmax_inds]
-        argmax_texts = [self.text_encoder.ctc_decode(inds) for inds in argmax_inds]
-        tuples = list(zip(argmax_texts, text, argmax_texts_raw, audio_path))
-        shuffle(tuples)
-        rows = {}
-        for pred, target, raw_pred, audio_path in tuples[:examples_to_log]:
-            # target = BaseTextEncoder.normalize_text(target)
-            # wer = calc_wer(target, pred) * 100
-            # cer = calc_cer(target, pred) * 100
-
-            rows[Path(audio_path).name] = {
-                "target": target,
-                "raw prediction": raw_pred,
-                "predictions": pred,
-                # "wer": wer,
-                # "cer": cer,
-            }
-        self.writer.add_table("predictions", pd.DataFrame.from_dict(rows, orient="index"))
-
-    def _log_spectrogram(self, spectrogram_batch):
-        spectrogram = random.choice(spectrogram_batch.cpu())
-        image = PIL.Image.open(plot_spectrogram_to_buf(spectrogram))
-        self.writer.add_image("spectrogram", ToTensor()(image))
 
     @torch.no_grad()
     def get_grad_norm(self, norm_type=2):
-        parameters = self.model.parameters()
-        if isinstance(parameters, torch.Tensor):
-            parameters = [parameters]
+        parameters_g = self.generator.parameters()
+        parameters_d = self.discriminator.parameters()
+        if isinstance(parameters_g, torch.Tensor):
+            parameters_g = [parameters_g]
+        if isinstance(parameters_d, torch.Tensor):
+            parameters_d = [parameters_d]
+        parameters = parameters_g + parameters_d
         parameters = [p for p in parameters if p.grad is not None]
         total_norm = torch.norm(
             torch.stack(

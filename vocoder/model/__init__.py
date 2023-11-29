@@ -1,5 +1,6 @@
-from vocoder.model.baseline_model import BaselineModel
+from vocoder.model.hifigan import Discriminator, Generator
 
 __all__ = [
-    "BaselineModel",
+    "Generator",
+    "Discriminator"
 ]

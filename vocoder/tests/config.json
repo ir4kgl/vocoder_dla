@@ -10,10 +10,6 @@
     },
     "log_spec": true
   },
-  "augmentations": {
-    "wave": [],
-    "spectrogram": []
-  },
   "arch": {
     "type": "BaselineModel",
     "args": {
@@ -30,8 +26,7 @@
           "type": "LibrispeechDataset",
           "args": {
             "part": "dev-clean",
-            "max_audio_length": 20.0,
-            "max_text_length": 200
+            "max_audio_length": 20.0
           }
         }
       ]
@@ -44,8 +39,7 @@
           "type": "LibrispeechDataset",
           "args": {
             "part": "dev-clean",
-            "max_audio_length": 20.0,
-            "max_text_length": 200
+            "max_audio_length": 20.0
           }
         }
       ]

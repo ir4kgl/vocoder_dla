@@ -6,7 +6,6 @@ import numpy as np
 import torch
 
 import vocoder.loss as module_loss
-import vocoder.metric as module_metric
 import vocoder.model as module_arch
 from vocoder.trainer import Trainer
 from vocoder.utils import prepare_device
@@ -26,45 +25,52 @@ np.random.seed(SEED)
 def main(config):
     logger = config.get_logger("train")
 
-    # text_encoder
-    text_encoder = config.get_text_encoder()
-
     # setup data_loader instances
-    dataloaders = get_dataloaders(config, text_encoder)
+    dataloaders = get_dataloaders(config)
 
     # build model architecture, then print to console
-    model = config.init_obj(config["arch"], module_arch, n_class=len(text_encoder))
-    logger.info(model)
+    generator = config.init_obj(config["arch_g"], module_arch)
+    discriminator = config.init_obj(config["arch_d"], module_arch)
+    logger.info(generator)
+    logger.info(discriminator)
 
     # prepare for (multi-device) GPU training
     device, device_ids = prepare_device(config["n_gpu"])
-    model = model.to(device)
+    generator = generator.to(device)
+    discriminator = discriminator.to(device)
     if len(device_ids) > 1:
-        model = torch.nn.DataParallel(model, device_ids=device_ids)
+        generator = torch.nn.DataParallel(generator, device_ids=device_ids)
+        discriminator = torch.nn.DataParallel(discriminator, device_ids=device_ids)
 
     # get function handles of loss and metrics
-    loss_module = config.init_obj(config["loss"], module_loss).to(device)
-    metrics = [
-        config.init_obj(metric_dict, module_metric, text_encoder=text_encoder)
-        for metric_dict in config["metrics"]
-    ]
+    adv_loss_g = config.init_obj(config["adv_loss_g"], module_loss).to(device)
+    adv_loss_d = config.init_obj(config["adv_loss_d"], module_loss).to(device)
+    mel_loss = config.init_obj(config["mel_loss"], module_loss).to(device)
+    fm_loss = config.init_obj(config["fm_loss"], module_loss).to(device)
 
     # build optimizer, learning rate scheduler. delete every line containing lr_scheduler for
     # disabling scheduler
-    trainable_params = filter(lambda p: p.requires_grad, model.parameters())
-    optimizer = config.init_obj(config["optimizer"], torch.optim, trainable_params)
-    lr_scheduler = config.init_obj(config["lr_scheduler"], torch.optim.lr_scheduler, optimizer)
+    trainable_params_g = filter(lambda p: p.requires_grad, generator.parameters())
+    trainable_params_d = filter(lambda p: p.requires_grad, discriminator.parameters())
+    optimizer_g = config.init_obj(config["optimizer_g"], torch.optim, trainable_params_g)
+    optimizer_d = config.init_obj(config["optimizer_d"], torch.optim, trainable_params_d)
+    lr_scheduler_g = config.init_obj(config["lr_scheduler_g"], torch.optim.lr_scheduler, optimizer_g)
+    lr_scheduler_d = config.init_obj(config["lr_scheduler_d"], torch.optim.lr_scheduler, optimizer_d)
 
     trainer = Trainer(
-        model,
-        loss_module,
-        metrics,
-        optimizer,
-        text_encoder=text_encoder,
+        generator,
+        discriminator,
+        adv_loss_g,
+        adv_loss_d,
+        mel_loss,
+        fm_loss,
+        optimizer_g,
+        optimizer_d,
         config=config,
         device=device,
         dataloaders=dataloaders,
-        lr_scheduler=lr_scheduler,
+        lr_scheduler_g=lr_scheduler_g,
+        lr_scheduler_d=lr_scheduler_d,
         len_epoch=config["trainer"].get("len_epoch", None)
     )
 

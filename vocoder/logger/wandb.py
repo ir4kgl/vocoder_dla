@@ -65,11 +65,6 @@ class WanDBWriter:
             self._scalar_name(scalar_name): self.wandb.Audio(audio, sample_rate=sample_rate)
         }, step=self.step)
 
-    def add_text(self, scalar_name, text):
-        self.wandb.log({
-            self._scalar_name(scalar_name): self.wandb.Html(text)
-        }, step=self.step)
-
     def add_histogram(self, scalar_name, hist, bins=None):
         hist = hist.detach().cpu().numpy()
         np_hist = np.histogram(hist, bins=bins)
