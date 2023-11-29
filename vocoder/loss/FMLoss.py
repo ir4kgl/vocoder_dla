@@ -2,7 +2,7 @@ import torch
 
 
 class FMLoss():
-    def __call__(maps_gt, maps_pred):
+    def __call__(self, maps_gt, maps_pred):
         fm_loss = 0.
         for i in range(len(maps_gt)):
             fm_loss += torch.mean(
