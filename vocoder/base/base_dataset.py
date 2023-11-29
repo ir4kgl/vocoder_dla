@@ -9,7 +9,7 @@ from torch import Tensor
 from torch.utils.data import Dataset
 
 from vocoder.utils.parse_config import ConfigParser
-# from vocoder.mel.mel import MelSpectrogramConfig, MelSpectrogram
+from vocoder.mel.mel import MelSpectrogramConfig, MelSpectrogram
 
 
 logger = logging.getLogger(__name__)
@@ -31,9 +31,10 @@ class BaseDataset(Dataset):
         self.wave_augs = wave_augs
         self.spec_augs = spec_augs
         self.segment_size = segment_size
-        # if mel_config == None:
-        #     mel_config = MelSpectrogramConfig()
-        # self.mel_spec = MelSpectrogram(mel_config)
+        if mel_config == None:
+            mel_config = MelSpectrogramConfig()
+        self.mel_config = mel_config
+        self.mel_spec = MelSpectrogram(mel_config)
 
         self._assert_index_is_valid(index)
         index = self._filter_records_from_dataset(index, max_audio_length, limit)
@@ -47,12 +48,15 @@ class BaseDataset(Dataset):
         audio_path = data_dict["path"]
         audio_wave = self.load_audio(audio_path)
         audio_wave = self.process_wave(audio_wave)
-        # mel = self.mel_spec(audio_wave)
+        mel = self.mel_spec(audio_wave)
+        mel = torch.nn.functional.pad(mel.unsqueeze(1),
+            (int((self.mel_config.n_fft-self.mel_config.hop_length)/2), int((self.mel_config.n_fft-self.mel_config.hop_length)/2)), mode='reflect')
+        mel = mel.squeeze(1)
         return {
             "audio": audio_wave,
             "duration": audio_wave.size(1) / self.config_parser["preprocessing"]["sr"],
             "audio_path": audio_path,
-            # "mel" : mel
+            "mel" : mel
         }
 
     @staticmethod
