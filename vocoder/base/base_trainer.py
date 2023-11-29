@@ -17,7 +17,7 @@ class BaseTrainer:
                  optimizer_g, optimizer_d, config, device):
         self.device = device
         self.config = config
-        self.logger = config.get_logger("trainer", config["trainer"]["verbosity"])
+        self.logger = config.get_logger("trainer")
 
         self.generator = generator
         self.discriminator = discriminator
