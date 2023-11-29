@@ -49,9 +49,7 @@ class BaseDataset(Dataset):
         audio_wave = self.load_audio(audio_path)
         audio_wave = self.process_wave(audio_wave)
         mel = self.mel_spec(audio_wave)
-        mel = torch.nn.functional.pad(mel.unsqueeze(1),
-            (int((self.mel_config.n_fft-self.mel_config.hop_length)/2), int((self.mel_config.n_fft-self.mel_config.hop_length)/2)), mode='reflect')
-        mel = mel.squeeze(1)
+
         return {
             "audio": audio_wave,
             "duration": audio_wave.size(1) / self.config_parser["preprocessing"]["sr"],
