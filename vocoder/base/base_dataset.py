@@ -24,11 +24,13 @@ class BaseDataset(Dataset):
             spec_augs=None,
             limit=None,
             max_audio_length=None,
-            mel_config=None
+            mel_config=None,
+            segment_size=8192
     ):
         self.config_parser = config_parser
         self.wave_augs = wave_augs
         self.spec_augs = spec_augs
+        self.segment_size = segment_size
         if mel_config == None:
             mel_config = MelSpectrogramConfig()
         self.mel_spec = MelSpectrogram(mel_config)
@@ -72,6 +74,10 @@ class BaseDataset(Dataset):
         with torch.no_grad():
             if self.wave_augs is not None:
                 audio_tensor_wave = self.wave_augs(audio_tensor_wave)
+            if audio_tensor_wave.shape[-1] >= self.segment_size:
+                    max_audio_start = audio_tensor_wave.shape[-1] - self.segment_size
+                    audio_start = random.randint(0, max_audio_start)
+                    audio_tensor_wave = audio_tensor_wave[:, audio_start:audio_start+self.segment_size]
             return audio_tensor_wave
 
     @staticmethod
