@@ -54,7 +54,7 @@ class Trainer(BaseTrainer):
 
         if mel_config == None:
             mel_config = MelSpectrogramConfig()
-        self.mel_spec = MelSpectrogram(mel_config)
+        self.mel_spec = MelSpectrogram(mel_config).to(device)
 
     @staticmethod
     def move_batch_to_device(batch, device: torch.device):
