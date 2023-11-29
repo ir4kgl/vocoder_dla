@@ -197,7 +197,7 @@ class MSD(nn.Module):
         self.poolings = nn.ModuleList()
         self.subdiscriminators.append(ScaleDiscriminator(spectral_norm))
         for _ in range(stages-1):
-            self.subdiscriminators.append(nn.ModuleList([
+            self.subdiscriminators.append(nn.Sequential([
                 nn.AvgPool1d(4,2,2),
                 ScaleDiscriminator(weight_norm)
             ]))
