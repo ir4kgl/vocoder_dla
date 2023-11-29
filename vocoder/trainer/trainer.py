@@ -33,7 +33,8 @@ class Trainer(BaseTrainer):
             lr_scheduler_g=None,
             lr_scheduler_d=None,
             skip_oom=True,
-            mel_config=None
+            mel_config=None,
+            lr_update=100,
     ):
         super().__init__(generator, discriminator,
                          adv_criterion_g, adv_criterion_d, mel_criterion, fm_criterion,
@@ -130,7 +131,7 @@ class Trainer(BaseTrainer):
             if batch_idx >= self.len_epoch:
                 break
 
-            if batch_idx % 100 == 0:
+            if batch_idx % self.lr_update == 0:
                 if self.lr_scheduler_d is not None:
                     self.lr_scheduler_d.step()
                 if self.lr_scheduler_g is not None:
