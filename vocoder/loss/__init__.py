@@ -1,5 +1,10 @@
-from vocoder.loss.CTCLossWrapper import CTCLossWrapper as CTCLoss
+from vocoder.loss.AdvLoss import AdversarialLossGenerator, AdversarialLossDiscriminator
+from vocoder.loss.FMLoss import FMLoss
+from vocoder.loss.MelLoss import MelLoss
 
 __all__ = [
-    "CTCLoss"
+    "FMLoss",
+    "MelLoss",
+    "AdversarialLossGenerator",
+    "AdversarialLossDiscriminator"
 ]

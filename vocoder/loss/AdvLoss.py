@@ -1,26 +1,17 @@
 import torch
 
-def discriminator_loss(disc_real_outputs, disc_generated_outputs):
-    loss = 0
-    r_losses = []
-    g_losses = []
-    for dr, dg in zip(disc_real_outputs, disc_generated_outputs):
-        r_loss = torch.mean((1-dr)**2)
-        g_loss = torch.mean(dg**2)
-        loss += (r_loss + g_loss)
-        r_losses.append(r_loss.item())
-        g_losses.append(g_loss.item())
 
-    return loss, r_losses, g_losses
+class AdversarialLossGenerator():
+    def __call__(outputs_disc):
+        adv_loss_gen = 0.
+        for i in range(len(outputs_disc)):
+            adv_loss_gen += torch.mean((1 - outputs_disc[i]) ** 2)
+        return adv_loss_gen
 
-
-def generator_loss(disc_outputs):
-    loss = 0
-    gen_losses = []
-    for dg in disc_outputs:
-        l = torch.mean((1-dg)**2)
-        gen_losses.append(l)
-        loss += l
-
-    return loss, gen_losses
-
+class AdversarialLossDiscriminator():
+    def __call__(outputs_gt, outputs_preds):
+        adv_loss_disc = 0.
+        for i in range(len(outputs_gt)):
+            adv_loss_disc += torch.mean((1 - outputs_gt[i]) ** 2)
+            adv_loss_disc += torch.mean(outputs_preds[i] ** 2)
+        return adv_loss_disc

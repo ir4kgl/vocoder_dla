@@ -1,9 +1,10 @@
 import torch
 
-def feature_loss(fmap_r, fmap_g):
-    loss = 0
-    for dr, dg in zip(fmap_r, fmap_g):
-        for rl, gl in zip(dr, dg):
-            loss += torch.mean(torch.abs(rl - gl))
 
-    return loss*2
+class FMLoss():
+    def __call__(maps_gt, maps_pred):
+        fm_loss = 0.
+        for i in range(len(maps_gt)):
+            fm_loss += torch.mean(
+                torch.stack(maps_gt[i]) - torch.stack(maps_pred[i]))
+        return fm_loss
