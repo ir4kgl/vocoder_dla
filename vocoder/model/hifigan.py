@@ -20,14 +20,14 @@ class ResBlock(nn.Module):
         super(ResBlock, self).__init__()
         self.layers = nn.ModuleList()
         for d in dilations:
-            self.layers.append(nn.ModuleList([
+            self.layers.append(nn.Sequential(
                 weight_norm(nn.Conv1d(channels, channels, kernel_size,
                         dilation=d, padding=get_padding(kernel_size, d))),
                 LeakyReLU(),
                 weight_norm(nn.Conv1d(channels, channels, kernel_size,
                         dilation=1, padding=get_padding(kernel_size, 1))),
                 LeakyReLU()
-            ]))
+            ))
         for seq in self.layers:
             for l in seq:
                 if "Conv1d" in l.__class__.__name__:
@@ -35,7 +35,7 @@ class ResBlock(nn.Module):
                     nn.init.constant_(l.bias, 0.0)
 
     def forward(self, x):
-        for layer in self.layers():
+        for layer in self.layers:
             x_residual = layer(x)
             x = x + x_residual
         return x
@@ -75,7 +75,7 @@ class GeneratorBlock(nn.Module):
         super(GeneratorBlock, self).__init__()
         self.activation = LeakyReLU()
         self.upsampler = Upsampler(c, upsample_rate, upsample_kernel_size)
-        self.mrf = MRF(c, mrf_kernel_sizes, mrf_dilations)
+        self.mrf = MRF(c // 2, mrf_kernel_sizes, mrf_dilations)
 
     def forward(self, x):
         x = self.activation(x)
@@ -91,12 +91,13 @@ class Generator(nn.Module):
         assert(len(upsample_rates) == len(upsample_kernel_sizes))
         self.n_blocks = len(upsample_rates)
         self.preconv = weight_norm(nn.Conv1d(80, c, 7, 1, padding=3))
-        self.blocks = nn.ModuleList()
+        self.blocks = []
         for i in range(self.n_blocks):
             self.blocks.append(GeneratorBlock(
                 upsample_rates[i], upsample_kernel_sizes[i], c,
                 mrf_kernel_sizes, mrf_dilations))
             c //= 2
+        self.blocks = nn.Sequential(*self.blocks)
         self.activation = nn.LeakyReLU()
         self.postconv = weight_norm(nn.Conv1d(c, 1, 7, 1, padding=3))
         nn.init.normal_(self.preconv.weight)
