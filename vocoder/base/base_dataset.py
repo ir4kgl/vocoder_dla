@@ -29,7 +29,6 @@ class BaseDataset(Dataset):
         self.config_parser = config_parser
         self.wave_augs = wave_augs
         self.spec_augs = spec_augs
-        self.log_spec = config_parser["preprocessing"]["log_spec"]
         if mel_config == None:
             mel_config = MelSpectrogramConfig()
         self.mel_spec = MelSpectrogram(mel_config)
@@ -77,7 +76,7 @@ class BaseDataset(Dataset):
 
     @staticmethod
     def _filter_records_from_dataset(
-            index: list, max_audio_length, max_text_length, limit
+            index: list, max_audio_length, limit
     ) -> list:
         initial_size = len(index)
         if max_audio_length is not None:

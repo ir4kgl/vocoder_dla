@@ -21,19 +21,16 @@ URL_LINKS = {
 
 class LJspeechDataset(BaseDataset):
     def __init__(self, data_dir=None, index_dir=None, *args, **kwargs):
-
         if data_dir is None:
             data_dir = ROOT_PATH / "data" / "datasets" / "ljspeech"
-            data_dir.mkdir(exist_ok=True, parents=True)
         self._data_dir = data_dir
         if index_dir is None:
-            self._index_dir = self._data_dir
-
+            self._index_dir = ROOT_PATH
         index = self._get_or_load_index()
-
         super().__init__(index, *args, **kwargs)
 
     def _load_dataset(self):
+        self._data_dir.mkdir(exist_ok=True, parents=True)
         arch_path = self._data_dir / "LJSpeech-1.1.tar.bz2"
         print(f"Loading LJSpeech")
         download_file(URL_LINKS["dataset"], arch_path)

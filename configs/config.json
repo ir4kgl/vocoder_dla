@@ -25,7 +25,7 @@
         {
           "type": "LJspeechDataset",
           "args": {},
-          "module": "vocoder.models"
+          "module": "vocoder.datasets"
         }
       ]
     }
