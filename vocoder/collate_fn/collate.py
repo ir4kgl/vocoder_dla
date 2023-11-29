@@ -17,6 +17,14 @@ def collate_fn(dataset_items: List[dict]):
 
     result_batch["audio"] = list(x["audio"] for x in dataset_items)
     result_batch["mel"] = list(x["mel"] for x in dataset_items)
+
+
+    result_batch["audio_len"] = torch.as_tensor(
+        list(x["audio"].shape[-1] for x in dataset_items), dtype=torch.int32)
+
+    result_batch["mel_len"] = torch.as_tensor(
+        list(x["mel"].shape[-1] for x in dataset_items), dtype=torch.int32)
+
     batch_audio_len = max(result_batch["audio_len"])
     batch_mel_len = max(result_batch["mel_len"])
 
