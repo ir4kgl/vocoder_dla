@@ -119,9 +119,11 @@ class Trainer(BaseTrainer):
                     )
                 )
                 self.writer.add_scalar(
-                    "learning rate", self.lr_scheduler.get_last_lr()[0]
+                    "learning rate generator", self.lr_scheduler_g.get_last_lr()[0]
                 )
-
+                self.writer.add_scalar(
+                    "learning rate discriminator", self.lr_scheduler_d.get_last_lr()[0]
+                )
                 self._log_scalars(self.train_metrics)
                 last_train_metrics = self.train_metrics.result()
                 self.train_metrics.reset()
