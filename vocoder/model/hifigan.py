@@ -139,7 +139,7 @@ class PeriodDiscriminator(nn.Module):
         feature_map = []
         x = self.pad(x)
         x = x.view(x.shape[0], x.shape[1], x.shape[-1] // self.period, self.period)
-        for l in self.layers():
+        for l in self.layers:
             x = l(x)
             x = self.activation(x)
             feature_map.append(x)
@@ -165,7 +165,7 @@ class ScaleDiscriminator(nn.Module):
 
     def forward(self, x):
         feature_map = []
-        for l in self.layers():
+        for l in self.layers:
             x = l(x)
             x = self.activation(x)
             feature_map.append(x)
