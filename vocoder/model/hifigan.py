@@ -183,7 +183,7 @@ class MPD(nn.Module):
 
     def forward(self, x):
         preds, feature_maps = [], []
-        for discriminator in self.subdiscriminators():
+        for discriminator in self.subdiscriminators:
             pred, fm = discriminator(x)
             preds.append(pred)
             feature_maps.append(fm)
@@ -204,7 +204,7 @@ class MSD(nn.Module):
 
     def forward(self, x):
         preds, feature_maps = [], []
-        for discriminator in self.subdiscriminators():
+        for discriminator in self.subdiscriminators:
             pred, fm = discriminator(x)
             preds.append(pred)
             feature_maps.append(fm)
