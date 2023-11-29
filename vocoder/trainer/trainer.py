@@ -164,9 +164,10 @@ class Trainer(BaseTrainer):
         mpd_out, mpd_fm, msd_out, msd_fm = self.discriminator(batch["audio"])
         mpd_out_pred, mpd_fm_pred, msd_out_pred, msd_fm_pred = self.discriminator(batch["audio_pred"])
 
+        batch["Adv_loss"] = self.adv_criterion_g(mpd_out_pred) + self.adv_criterion_g(msd_out_pred)
         batch["FM_loss"] = self.fm_criterion(mpd_fm, mpd_fm_pred) + self.fm_criterion(msd_fm, msd_fm_pred)
         batch["Mel_loss"] = self.mel_criterion(batch["mel"], batch["mel_pred"])
-        batch["Adv_loss"] = self.adv_criterion_g(mpd_out_pred) + self.adv_criterion_g(msd_out_pred)
+
         batch["generator_loss"] = batch["FM_loss"] + batch["Mel_loss"] + batch["Adv_loss"]
 
         if is_train:
