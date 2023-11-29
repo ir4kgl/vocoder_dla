@@ -140,6 +140,11 @@ class Trainer(BaseTrainer):
         batch["audio_pred"] = self.generator(batch["mel"])
         batch["mel_pred"] = self.mel_spec(batch["audio_pred"])
 
+        print(batch["audio"].shape)
+        print(batch["audio_pred"].shape)
+        print(batch["mel"].shape)
+        print(batch["mel_pred"].shape)
+
 
         if is_train:
             self.optimizer_d.zero_grad()
