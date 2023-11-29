@@ -181,7 +181,7 @@ class Trainer(BaseTrainer):
         batch["FM_loss"] = self.fm_criterion(mpd_fm, mpd_fm_pred) + self.fm_criterion(msd_fm, msd_fm_pred)
         batch["Mel_loss"] = self.mel_criterion(batch["mel"], batch["mel_pred"])
 
-        batch["generator_loss"] = batch["FM_loss"] + batch["Mel_loss"] + batch["Adv_loss"]
+        batch["generator_loss"] = 2 * batch["FM_loss"] + 45 * batch["Mel_loss"] + batch["Adv_loss"]
 
         if is_train:
             batch["generator_loss"].backward()
