@@ -135,7 +135,7 @@ class Trainer(BaseTrainer):
     def process_batch(self, batch, is_train: bool, metrics: MetricTracker):
         batch = self.move_batch_to_device(batch, self.device)
 
-        batch["mel"] = self.mel_spec(batch["audio"])
+        batch["mel"] = self.mel_spec(batch["audio"]).squeeze()
 
         batch["audio_pred"] = self.generator(batch["mel"])
         batch["mel_pred"] = self.mel_spec(batch["audio_pred"])
