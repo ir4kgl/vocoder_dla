@@ -64,7 +64,6 @@ class Upsampler(nn.Module):
         ))
         nn.init.normal_(self.t_conv.weight)
         nn.init.constant_(self.t_conv.bias, 0.0)
-        # m.dweight.data.normal_(mean, std)
 
     def forward(self, x):
         return self.t_conv(x)
@@ -111,14 +110,6 @@ class Generator(nn.Module):
         x = self.activation(x)
         x = self.postconv(x)
         return torch.tanh(x)
-
-
-class Discriminator(nn.Module):
-    def __init__(self):
-        super(Discriminator, self).__init__()
-
-    def forward(self, x):
-        return None
 
 
 class PeriodDiscriminator(nn.Module):
@@ -219,11 +210,11 @@ class MSD(nn.Module):
         return preds, feature_maps
 
 
-    class Discriminator(nn.Module):
-        def __init__(self):
-            super(Discriminator, self).__init__()
-            self.mpd = MPD()
-            self.msd = MSD()
+class Discriminator(nn.Module):
+    def __init__(self):
+        super(Discriminator, self).__init__()
+        self.mpd = MPD()
+        self.msd = MSD()
 
-        def forward(self, x):
-            return *MPD(x), *MSD(x)
+    def forward(self, x):
+        return *MPD(x), *MSD(x)
