@@ -25,7 +25,8 @@ class LJspeechDataset(BaseDataset):
             data_dir = ROOT_PATH / "data" / "datasets" / "ljspeech"
         self._data_dir = data_dir
         if index_dir is None:
-            self._index_dir = ROOT_PATH
+            index_dir = ROOT_PATH
+        self._index_dir = index_dir
         index = self._get_or_load_index()
         super().__init__(index, *args, **kwargs)
 
