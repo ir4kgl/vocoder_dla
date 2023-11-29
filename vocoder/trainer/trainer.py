@@ -42,6 +42,7 @@ class Trainer(BaseTrainer):
         self.skip_oom = skip_oom
         self.config = config
         self.train_dataloader = dataloaders["train"]
+        self.lr_update = lr_update
 
         self.len_epoch = len(self.train_dataloader)
         self.evaluation_dataloaders = {k: v for k, v in dataloaders.items() if k != "train"}
