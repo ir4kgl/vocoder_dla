@@ -43,10 +43,10 @@ def main(config):
         discriminator = torch.nn.DataParallel(discriminator, device_ids=device_ids)
 
     # get function handles of loss and metrics
-    adv_loss_g = config.init_obj(config["adv_loss_g"], module_loss).to(device)
-    adv_loss_d = config.init_obj(config["adv_loss_d"], module_loss).to(device)
-    mel_loss = config.init_obj(config["mel_loss"], module_loss).to(device)
-    fm_loss = config.init_obj(config["fm_loss"], module_loss).to(device)
+    adv_loss_g = config.init_obj(config["adv_loss_g"], module_loss)
+    adv_loss_d = config.init_obj(config["adv_loss_d"], module_loss)
+    mel_loss = config.init_obj(config["mel_loss"], module_loss)
+    fm_loss = config.init_obj(config["fm_loss"], module_loss)
 
     # build optimizer, learning rate scheduler. delete every line containing lr_scheduler for
     # disabling scheduler
