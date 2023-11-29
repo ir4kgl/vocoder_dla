@@ -129,6 +129,11 @@ class Trainer(BaseTrainer):
                 break
         log = last_train_metrics
 
+        if self.lr_scheduler_d is not None:
+            self.lr_scheduler_d.step()
+        if self.lr_scheduler_g is not None:
+            self.lr_scheduler_g.step()
+
         with torch.no_grad():
             self._evaluation_epoch()
 
@@ -137,7 +142,7 @@ class Trainer(BaseTrainer):
     def process_batch(self, batch, is_train: bool, metrics: MetricTracker):
         batch = self.move_batch_to_device(batch, self.device)
 
-        batch["audio_pred"] = self.generator(batch["mel"])
+        batch["audio_pred"] = self.generator(batch["mel"]).detach()
         if batch["audio_pred"].shape[-1] > batch["audio"].shape[-1]:
             pad_ = (0, batch["audio_pred"].shape[-1] - batch["audio"].shape[-1])
             batch["audio"] = pad(batch["audio"], pad_, "constant", 0)
@@ -157,8 +162,8 @@ class Trainer(BaseTrainer):
             batch["discriminator_loss"].backward()
             self._clip_grad_norm()
             self.optimizer_d.step()
-            if self.lr_scheduler_d is not None:
-                self.lr_scheduler_d.step()
+            # if self.lr_scheduler_d is not None:
+            #     self.lr_scheduler_d.step()
 
         metrics.update("mpd_loss", batch["mpd_loss"].item())
         metrics.update("msd_loss", batch["msd_loss"].item())
@@ -180,8 +185,8 @@ class Trainer(BaseTrainer):
             batch["generator_loss"].backward()
             self._clip_grad_norm()
             self.optimizer_g.step()
-            if self.lr_scheduler_g is not None:
-                self.lr_scheduler_g.step()
+            # if self.lr_scheduler_g is not None:
+            #     self.lr_scheduler_g.step()
 
         metrics.update("Mel_loss", batch["Mel_loss"].item())
         metrics.update("FM_loss", batch["FM_loss"].item())
