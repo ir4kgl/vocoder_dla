@@ -205,7 +205,7 @@ class Trainer(BaseTrainer):
         self.discriminator.eval()
     
         for i, mel_path in enumerate(EVAL_DATA):
-                mel = torch.load(mel_path)
+                mel = torch.load(mel_path).to(self.device)
                 assert(mel.shape[1]) == 80
                 audio = self.generator(mel).squeeze()
                 self.writer.add_audio("synthesised_audio_{}".format(i), audio, sample_rate=22050)
