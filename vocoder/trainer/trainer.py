@@ -8,9 +8,9 @@ from vocoder.mel.mel import MelSpectrogram, MelSpectrogramConfig
 from torch.nn.functional import pad
 
 
-EVAL_DATA = ["./eval_data/mels/mel1.pt",
-             "./eval_data/mels/mel2.pt",
-             "./eval_data/mels/mel3.pt"]
+EVAL_DATA = ["vocoder_dla/trainer/eval_data/mels/mel1.pt",
+             "vocoder_dla/trainer/eval_data/mels/mel2.pt",
+             "vocoder_dla/trainer/eval_data/mels/mel3.pt"]
 
 class Trainer(BaseTrainer):
     """
@@ -137,11 +137,9 @@ class Trainer(BaseTrainer):
                     self.lr_scheduler_d.step()
                 if self.lr_scheduler_g is not None:
                     self.lr_scheduler_g.step()
+                with torch.no_grad():
+                    self._evaluation_epoch()
         log = last_train_metrics
-
-        with torch.no_grad():
-            self._evaluation_epoch()
-
         return log
 
     def process_batch(self, batch, is_train: bool, metrics: MetricTracker):
