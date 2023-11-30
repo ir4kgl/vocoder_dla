@@ -189,8 +189,8 @@ class Trainer(BaseTrainer):
             self._clip_grad_norm()
             self.optimizer_g.step()
 
-        metrics.update("Mel_loss", batch["Mel_loss"].item())
-        metrics.update("FM_loss", batch["FM_loss"].item())
+        metrics.update("Mel_loss", 45 * batch["Mel_loss"].item())
+        metrics.update("FM_loss", 2 * batch["FM_loss"].item())
         metrics.update("Adv_loss", batch["Adv_loss"].item())
         metrics.update("generator_loss", batch["generator_loss"].item())
 
