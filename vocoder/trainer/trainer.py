@@ -8,9 +8,9 @@ from vocoder.mel.mel import MelSpectrogram, MelSpectrogramConfig
 from torch.nn.functional import pad
 
 
-EVAL_DATA = ["vocoder_dla/trainer/eval_data/mels/mel1.pt",
-             "vocoder_dla/trainer/eval_data/mels/mel2.pt",
-             "vocoder_dla/trainer/eval_data/mels/mel3.pt"]
+EVAL_DATA = ["vocoder_dla/vocoder/trainer/eval_data/mels/mel1.pt",
+             "vocoder_dla/vocoder/trainer/eval_data/mels/mel2.pt",
+             "vocoder_dla/vocoder/trainer/eval_data/mels/mel3.pt"]
 
 class Trainer(BaseTrainer):
     """
