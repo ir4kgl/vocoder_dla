@@ -150,7 +150,7 @@ class Trainer(BaseTrainer):
         batch["audio_pred"] = self.generator(batch["mel"]).detach()
         if batch["audio_pred"].shape[-1] > batch["audio"].shape[-1]:
             pad_ = (0, batch["audio_pred"].shape[-1] - batch["audio"].shape[-1])
-            batch["audio"] = pad(batch["audio"], pad_, "constant", 0)
+            batch["audio"] = pad(batch["audio"], pad_, "reflect")
             batch["mel"] = self.mel_spec(batch["audio"])
         batch["mel_pred"] = self.mel_spec(batch["audio_pred"])
 
