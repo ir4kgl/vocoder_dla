@@ -147,7 +147,7 @@ class Trainer(BaseTrainer):
     def process_batch(self, batch, is_train: bool, metrics: MetricTracker):
         batch = self.move_batch_to_device(batch, self.device)
 
-        batch["audio_pred"] = self.generator(batch["mel"]).detach()
+        batch["audio_pred"] = self.generator(batch["mel"])
         if batch["audio_pred"].shape[-1] > batch["audio"].shape[-1]:
             pad_ = (0, batch["audio_pred"].shape[-1] - batch["audio"].shape[-1])
             batch["audio"] = pad(batch["audio"], pad_, "reflect")
@@ -158,7 +158,7 @@ class Trainer(BaseTrainer):
             self.optimizer_d.zero_grad()
 
         mpd_out, _, msd_out, _ = self.discriminator(batch["audio"])
-        mpd_out_pred, _, msd_out_pred, _ = self.discriminator(batch["audio_pred"])
+        mpd_out_pred, _, msd_out_pred, _ = self.discriminator(batch["audio_pred"].detach())
 
         batch["mpd_loss"] = self.adv_criterion_d(mpd_out, mpd_out_pred)
         batch["msd_loss"] = self.adv_criterion_d(msd_out, msd_out_pred)
