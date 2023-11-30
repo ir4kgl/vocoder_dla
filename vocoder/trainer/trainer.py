@@ -152,7 +152,6 @@ class Trainer(BaseTrainer):
             pad_ = (0, batch["audio_pred"].shape[-1] - batch["audio"].shape[-1])
             batch["audio"] = pad(batch["audio"], pad_, "reflect")
             batch["mel"] = self.mel_spec(batch["audio"])
-        batch["mel_pred"] = self.mel_spec(batch["audio_pred"])
 
         if is_train:
             self.optimizer_d.zero_grad()
@@ -177,6 +176,7 @@ class Trainer(BaseTrainer):
 
         mpd_out, mpd_fm, msd_out, msd_fm = self.discriminator(batch["audio"])
         mpd_out_pred, mpd_fm_pred, msd_out_pred, msd_fm_pred = self.discriminator(batch["audio_pred"])
+        batch["mel_pred"] = self.mel_spec(batch["audio_pred"])
 
         batch["Adv_loss"] = self.adv_criterion_g(mpd_out_pred) + self.adv_criterion_g(msd_out_pred)
         batch["FM_loss"] = self.fm_criterion(mpd_fm, mpd_fm_pred) + self.fm_criterion(msd_fm, msd_fm_pred)
