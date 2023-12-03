@@ -24,7 +24,10 @@
       "datasets": [
         {
           "type": "LJspeechDataset",
-          "args": {},
+          "args": {
+              "data_dir": "/kaggle/input/ljspeech-extended/LJSpeech",
+              "index_dir": "/kaggle/working/"
+          },
           "module": "vocoder.datasets"
         }
       ]
@@ -49,7 +52,7 @@
     "args": {}
   },
   "adv_loss_d": {
-    "type": "AdversarialLossdiscriminator",
+    "type": "AdversarialLossDiscriminator",
     "args": {}
   },
   "fm_loss": {
@@ -73,12 +76,12 @@
     }
   },
   "trainer": {
-    "epochs": 100,
+    "epochs": 10,
     "save_dir": "saved/",
     "save_period": 5,
     "monitor": "min val_loss",
     "visualize": "wandb",
     "wandb_project": "dla_vocoder",
-    "grad_norm_clip": 10
+    "grad_norm_clip": 100
   }
 }
