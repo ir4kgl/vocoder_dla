@@ -25,8 +25,8 @@
         {
           "type": "LJspeechDataset",
           "args": {
-              "data_dir": "/kaggle/input/ljspeech-extended/LJSpeech",
-              "index_dir": "/kaggle/working/"
+              "data_dir": "LJSpeech",
+              "index_dir": "."
           },
           "module": "vocoder.datasets"
         }
