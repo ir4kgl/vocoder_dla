@@ -1,6 +1,6 @@
 # Speaker separation project
 
-This repository contains vocoder implementation done as a part of homework #4 for the DLA course at the CS Faculty of HSE. See [wandb report](?) 
+This repository contains vocoder implementation done as a part of homework #4 for the DLA course at the CS Faculty of HSE. See [wandb report](https://wandb.ai/ira_gl/dla_vocoder/reports/Vocoder-report--Vmlldzo2MTU0MjMy?accessToken=b50t3dmb60tzlrqthfber0zh7nm2w0xkp0ehcuokh1o82d861m3ns6zk5bs17cjc) 
 
 ## Installation guide
 
