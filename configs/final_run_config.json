@@ -76,7 +76,7 @@
     }
   },
   "trainer": {
-    "epochs": 10,
+    "epochs": 23,
     "save_dir": "saved/",
     "save_period": 5,
     "monitor": "min val_loss",
