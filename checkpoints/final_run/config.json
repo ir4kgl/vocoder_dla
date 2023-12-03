@@ -1,0 +1,123 @@
+{
+    "name": "default_config",
+    "n_gpu": 1,
+    "preprocessing": {
+        "sr": 22050
+    },
+    "arch_g": {
+        "type": "Generator",
+        "args": {
+            "upsample_rates": [
+                8,
+                8,
+                2,
+                2
+            ],
+            "upsample_kernel_sizes": [
+                16,
+                16,
+                4,
+                4
+            ],
+            "mrf_kernel_sizes": [
+                3,
+                7,
+                11
+            ],
+            "mrf_dilations": [
+                [
+                    1,
+                    3,
+                    5
+                ],
+                [
+                    1,
+                    3,
+                    5
+                ],
+                [
+                    1,
+                    3,
+                    5
+                ]
+            ]
+        }
+    },
+    "arch_d": {
+        "type": "Discriminator",
+        "args": {}
+    },
+    "data": {
+        "train": {
+            "batch_size": 16,
+            "num_workers": 5,
+            "datasets": [
+                {
+                    "type": "LJspeechDataset",
+                    "args": {
+                        "data_dir": "/kaggle/input/ljspeech-extended/LJSpeech",
+                        "index_dir": "/kaggle/working/"
+                    },
+                    "module": "vocoder.datasets"
+                }
+            ]
+        }
+    },
+    "optimizer_g": {
+        "type": "Adam",
+        "args": {
+            "lr": 0.0002,
+            "betas": [
+                0.8,
+                0.99
+            ]
+        }
+    },
+    "optimizer_d": {
+        "type": "Adam",
+        "args": {
+            "lr": 0.0002,
+            "betas": [
+                0.8,
+                0.99
+            ]
+        }
+    },
+    "adv_loss_g": {
+        "type": "AdversarialLossGenerator",
+        "args": {}
+    },
+    "adv_loss_d": {
+        "type": "AdversarialLossDiscriminator",
+        "args": {}
+    },
+    "fm_loss": {
+        "type": "FMLoss",
+        "args": {}
+    },
+    "mel_loss": {
+        "type": "MelLoss",
+        "args": {}
+    },
+    "lr_scheduler_g": {
+        "type": "ExponentialLR",
+        "args": {
+            "gamma": 0.999
+        }
+    },
+    "lr_scheduler_d": {
+        "type": "ExponentialLR",
+        "args": {
+            "gamma": 0.999
+        }
+    },
+    "trainer": {
+        "epochs": 23,
+        "save_dir": "saved/",
+        "save_period": 5,
+        "monitor": "min val_loss",
+        "visualize": "wandb",
+        "wandb_project": "dla_vocoder",
+        "grad_norm_clip": 100
+    }
+}
