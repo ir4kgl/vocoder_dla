@@ -1,82 +1,47 @@
-# ASR project barebones
+# Speaker separation project
+
+This repository contains vocoder implementation done as a part of homework #4 for the DLA course at the CS Faculty of HSE. See [wandb report](?) 
 
 ## Installation guide
 
-< Write your installation guide here >
+Clone this repository. Move to corresponding folder and install required packages:
 
 ```shell
+git clone https://github.com/ir4kgl/vocoder_dla
+cd vocoder_dla
 pip install -r ./requirements.txt
 ```
 
-## Recommended implementation order
+## Checkpoint
 
-You might be a little intimidated by the number of folders and classes. Try to follow this steps to gradually undestand
-the workflow.
+To download the final checkpoint run 
 
-1) Test `vocoder/tests/test_dataset.py`  and `vocoder/tests/test_config.py` and make sure everythin works for you
-2) Implement missing functions to fix tests in  `vocoder\tests\test_text_encoder.py`
-3) Implement missing functions to fix tests in  `vocoder\tests\test_dataloader.py`
-4) Implement functions in `vocoder\metric\utils.py`
-5) Implement missing function to run `train.py` with a baseline model
-6) Write your own model and try to overfit it on a single batch
-7) Implement ctc beam search and add metrics to calculate WER and CER over hypothesis obtained from beam search.
-8) ~~Pain and suffering~~ Implement your own models and train them. You've mastered this template when you can tune your
-   experimental setup just by tuning `configs.json` file and running `train.py`
-9) Don't forget to write a report about your work
-10) Get hired by Google the next day
-
-## Before submitting
-
-0) Make sure your projects run on a new machine after complemeting the installation guide or by 
-   running it in docker container.
-1) Search project for `# TODO: your code here` and implement missing functionality
-2) Make sure all tests work without errors
-   ```shell
-   python -m unittest discover vocoder/tests
-   ```
-3) Make sure `test.py` works fine and works as expected. You should create files `default_test_config.json` and your
-   installation guide should download your model checpoint and configs in `default_test_model/checkpoint.pth`
-   and `default_test_model/config.json`.
-   ```shell
-   python test.py \
-      -c default_test_config.json \
-      -r default_test_model/checkpoint.pth \
-      -t test_data \
-      -o test_result.json
-   ```
-4) Use `train.py` for training
-
-## Credits
-
-This repository is based on a heavily modified fork
-of [pytorch-template](https://github.com/victoresque/pytorch-template) repository.
-
-## Docker
-
-You can use this project with docker. Quick start:
-
-```bash 
-docker build -t my_vocoder_image . 
-docker run \
-   --gpus '"device=0"' \
-   -it --rm \
-   -v /path/to/local/storage/dir:/repos/asr_project_template/data/datasets \
-   -e WANDB_API_KEY=<your_wandb_api_key> \
-	my_vocoder_image python -m unittest 
+```shell
+python3 download_checkpoint.py
 ```
 
-Notes:
+it will download final checkpoint in `checkpoints/final_run` folder.
 
-* `-v /out/of/container/path:/inside/container/path` -- bind mount a path, so you wouldn't have to download datasets at
-  the start of every docker run.
-* `-e WANDB_API_KEY=<your_wandb_api_key>` -- set envvar for wandb (if you want to use it). You can find your API key
-  here: https://wandb.ai/authorize
+## Run train
 
-## TODO
+To train model simply run
 
-These barebones can use more tests. We highly encourage students to create pull requests to add more tests / new
-functionality. Current demands:
+```shell
+python3 train.py --c config.json --r CHECKPOINT.pth
+```
 
-* Tests for beam search
-* README section to describe folders
-* Notebook to show how to work with `ConfigParser` and `config_parser.init_obj(...)`
+where `config.json` is configuration file with all data, model and trainer parameters and `CHECKPOINT.pth` is an optional argument to continue training starting from a given checkpoint. 
+
+Configuration of my final experiment you can find in the file `configs/final_run_config.json`.
+
+
+
+
+## HiFi-GAN Model
+
+File `vocoder/model/hifigan.py` contains the implementation of [](https://arxiv.org/abs/2010.05646) model. The code was written by me diligently studying the original article, however I took some inspiration and implementation of auxiliary methods (like `get_padding`) from  [this HiFi-GAN implementation](https://github.com/jik876/hifi-gan).
+
+
+## Loss function and metrics
+
+See implementation of the loss function in `vocoder/loss/` module. Here you can find implementation of adversarial loss for generator and discriminator, additional feature map loss for generator and mel loss for generator in files `AdvLoss.py`, `FMLoss.py` and `MelLoss.py` respectively.
